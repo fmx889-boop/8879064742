@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Wealth & WealthTracker Engine</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            emerald: '#10b981',
+                            rose: '#f43f5e',
+                            violet: '#8b5cf6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbars for clean aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col min-h-screen">
+
+    <div id="auth-lock-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center">
+        <div class="glass-panel p-8 rounded-3xl border border-slate-800 max-w-md w-full mx-4 shadow-2xl text-center space-y-6">
+            <div class="inline-flex p-4 bg-sky-500/10 rounded-2xl text-sky-400 border border-sky-500/20 mb-2">
+                <i class="fa-solid fa-vault text-3xl"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-slate-100" id="auth-title">Security Vault Lock</h2>
+                <p class="text-xs text-slate-400 mt-1" id="auth-subtitle">Enter your passcode to unlock your live cloud financial database.</p>
+            </div>
+
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="auth-passkey" required placeholder="Enter passcode" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg text-slate-100 font-mono focus:outline-none focus:border-sky-500 tracking-widest">
+                </div>
+                <div id="auth-error" class="text-xs text-rose-400 hidden">Incorrect password. Please try again.</div>
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-sky-500/20">
+                    Unlock Financial Vault
+                </button>
+            </form>
+            <div class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-cloud text-sky-400"></i> Real-time Cloud Sync Active
+            </div>
+        </div>
+    </div>
+
+    <header class="sticky top-0 z-40 border-b border-slate-800 glass-panel">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-xl shadow-lg shadow-sky-500/20 text-white">
+                        <i class="fa-solid fa-wallet text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent flex items-center gap-2">
+                            OmniWealth Tracker
+                            <span id="sync-indicator" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Cloud Live
+                            </span>
+                        </h1>
+                        <p class="text-xs text-slate-400 hidden sm:block">Total Liquidity, Investments & Projections Engine</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-1 text-xs sm:text-sm font-medium">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2 border-b-2 border-sky-400 text-sky-400">
+                        <i class="fa-solid fa-chart-pie"></i> <span class="hidden md:inline">Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('ledger')" id="nav-ledger" class="tab-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2 border-b-2 border-transparent">
+                        <i class="fa-solid fa-list-check"></i> <span class="hidden md:inline">Expenses & Cash Flow</span>
+                    </button>
+                    <button onclick="switchTab('deposits')" id="nav-deposits" class="tab-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2 border-b-2 border-transparent">
+                        <i class="fa-solid fa-vault"></i> <span class="hidden md:inline">FD / RD / Assets</span>
+                    </button>
+                    <button onclick="switchTab('liabilities')" id="nav-liabilities" class="tab-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2 border-b-2 border-transparent">
+                        <i class="fa-solid fa-credit-card"></i> <span class="hidden md:inline">EMIs & Debts</span>
+                    </button>
+                    <button onclick="switchTab('calculators')" id="nav-calculators" class="tab-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2 border-b-2 border-transparent">
+                        <i class="fa-solid fa-calculator text-amber-400"></i> <span class="hidden md:inline">Financial Calculators</span>
+                    </button>
+                </nav>
+
+                <!-- Quick Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <button onclick="exportDataJSON()" title="Backup Data" class="px-2.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 rounded-lg border border-emerald-500/30 transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-download"></i>
+                        <span class="hidden xl:inline">Backup</span>
+                    </button>
+                    <button onclick="openStartingBalanceModal()" class="px-3 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 rounded-lg border border-sky-500/30 transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span class="hidden lg:inline">Balances</span>
+                    </button>
+                    <button onclick="lockVault()" class="p-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded-lg border border-slate-700 transition-all" title="Lock App">
+                        <i class="fa-solid fa-lock"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Banner for Quick Net Worth Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <!-- Current Account -->
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+                <div class="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-1">
+                    <i class="fa-solid fa-building-columns text-sky-400"></i> Current Account
+                </div>
+                <div id="summary-current-acc" class="text-lg font-bold font-mono text-white">₹0.00</div>
+                <div class="text-[10px] text-slate-500 mt-1">Base + Dynamic Ledger</div>
+            </div>
+
+            <!-- Savings Account -->
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+                <div class="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-1">
+                    <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Savings Account
+                </div>
+                <div id="summary-savings-acc" class="text-lg font-bold font-mono text-emerald-400">₹0.00</div>
+                <div class="text-[10px] text-slate-500 mt-1">Liquid reserve</div>
+            </div>
+
+            <!-- FDs / RDs -->
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+                <div class="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-1">
+                    <i class="fa-solid fa-lock text-indigo-400"></i> Term Deposits (FD/RD)
+                </div>
+                <div id="summary-fd-rd" class="text-lg font-bold font-mono text-indigo-300">₹0.00</div>
+                <div class="text-[10px] text-slate-500 mt-1">Principal value</div>
+            </div>
+
+            <!-- Market Investments -->
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+                <div class="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-1">
+                    <i class="fa-solid fa-chart-line text-purple-400"></i> Stocks / MF / Crypto
+                </div>
+                <div id="summary-investments" class="text-lg font-bold font-mono text-purple-300">₹0.00</div>
+                <div class="text-[10px] text-slate-500 mt-1">Current market value</div>
+            </div>
+
+            <!-- Liabilities (EMIs & CC Dues) -->
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+                <div class="text-xs font-medium text-slate-400 flex items-center gap-1.5 mb-1">
+                    <i class="fa-solid fa-hand-holding-dollar text-rose-400"></i> Total Debts/EMIs
+                </div>
+                <div id="summary-liabilities" class="text-lg font-bold font-mono text-rose-400">₹0.00</div>
+                <div class="text-[10px] text-slate-500 mt-1">Pending obligations</div>
+            </div>
+
+            <!-- Total Net Worth -->
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-sky-950/40">
+                <div class="text-xs font-medium text-sky-300 flex items-center gap-1.5 mb-1">
+                    <i class="fa-solid fa-scale-balanced text-amber-400"></i> Calculated Net Worth
+                </div>
+                <div id="summary-net-worth" class="text-xl font-extrabold font-mono text-amber-400">₹0.00</div>
+                <div class="text-[10px] text-slate-400 mt-1">Assets minus Liabilities</div>
+            </div>
+        </div>
+
+        <!-- Dashboard View Section -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Asset Allocation Donut Chart -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-sky-400"></i> Wealth Distribution
+                        </h3>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center min-h-[220px]">
+                        <canvas id="assetChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Monthly Income vs Expense Trend -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-emerald-400"></i> Monthly Cash Flow Trends
+                        </h3>
+                        <span class="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">Current Period</span>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center min-h-[220px]">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Health Dashboard & Summary Matrix -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-emerald-400"></i> Emergency Buffer Ratio
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-2">Months of living expenses covered by total liquid accounts (Current + Savings).</p>
+                    <div id="dashboard-emergency-ratio" class="text-2xl font-bold font-mono text-emerald-400">0.0 Months</div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 mt-3">
+                        <div id="emergency-progress" class="bg-emerald-500 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-percent text-rose-400"></i> Debt-to-Asset Ratio
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-2">Percentage of total assets leveraged by pending debts and liabilities.</p>
+                    <div id="dashboard-debt-ratio" class="text-2xl font-bold font-mono text-rose-400">0.0%</div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 mt-3">
+                        <div id="debt-progress" class="bg-rose-500 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-trend-up text-indigo-400"></i> Investment Growth Yield
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-2">Ratio of locked deposits & investments against total net worth.</p>
+                    <div id="dashboard-invest-ratio" class="text-2xl font-bold font-mono text-indigo-400">0.0%</div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 mt-3">
+                        <div id="invest-progress" class="bg-indigo-500 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-ledger" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Add New Transaction Form -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <h3 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-square-plus text-sky-400"></i> Record Transaction
+                    </h3>
+                    <form id="ledger-form" onsubmit="handleAddTransaction(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Transaction Type</label>
+                            <select id="tx-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                <option value="Expense">Expense (Debit)</option>
+                                <option value="Income">Income (Credit)</option>
+                                <option value="Transfer">Account Transfer</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Account Involved</label>
+                            <select id="tx-account" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                <option value="Current Account">Current Account</option>
+                                <option value="Savings Account">Savings Account</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Category</label>
+                            <select id="tx-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                <option value="Salary & Earnings">Salary & Earnings</option>
+                                <option value="Food & Groceries">Food & Groceries</option>
+                                <option value="Bills & Utilities">Bills & Utilities</option>
+                                <option value="Shopping & Entertainment">Shopping & Entertainment</option>
+                                <option value="Healthcare & Insurance">Healthcare & Insurance</option>
+                                <option value="Transport & Fuel">Transport & Fuel</option>
+                                <option value="EMI / Debt Repayment">EMI / Debt Repayment</option>
+                                <option value="FD / Investment Allocation">FD / Investment Allocation</option>
+                                <option value="Other Expenses">Other Expenses</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Amount (₹)</label>
+                            <input type="number" id="tx-amount" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Date</label>
+                            <input type="date" id="tx-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Description / Notes</label>
+                            <input type="text" id="tx-note" placeholder="e.g. Supermarket grocery shopping" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold rounded-xl text-sm transition-all shadow-md shadow-sky-500/20">
+                            Add Transaction Entry
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Transaction Log Table -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Daily Ledger History
+                        </h3>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input type="text" id="ledger-search" oninput="renderLedgerTable()" placeholder="Search logs..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 w-full sm:w-48 focus:outline-none focus:border-sky-500">
+                            <button onclick="clearAllLedger()" class="text-xs text-rose-400 hover:text-rose-300 border border-rose-500/30 px-2.5 py-1.5 rounded-lg hover:bg-rose-950/30 transition-all">
+                                Clear Log
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-3 rounded-l-lg">Date</th>
+                                    <th class="p-3">Account</th>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Note</th>
+                                    <th class="p-3">Amount</th>
+                                    <th class="p-3 text-right rounded-r-lg">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-table-body" class="divide-y divide-slate-800/60 font-medium">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-deposits" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Add FD/RD or Investment -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <h3 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-vault text-indigo-400"></i> Add Investment Asset
+                    </h3>
+                    <form id="asset-form" onsubmit="handleAddAsset(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Asset Class</label>
+                            <select id="asset-type" onchange="toggleAssetFields()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                                <option value="Fixed Deposit">Fixed Deposit (FD)</option>
+                                <option value="Recurring Deposit">Recurring Deposit (RD)</option>
+                                <option value="Mutual Funds">Mutual Funds (SIP/Lump)</option>
+                                <option value="Stocks & Equities">Stocks & Equities</option>
+                                <option value="Crypto & Digital">Crypto & Digital Assets</option>
+                                <option value="Real Estate & Other">Real Estate & Others</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Asset / Institution Name</label>
+                            <input type="text" id="asset-name" required placeholder="e.g. HDFC Tax Saver FD or Nifty 50 Index" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Invested Amount (Principal / Current)</label>
+                            <input type="number" id="asset-amount" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                        </div>
+
+                        <div id="fd-fields" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Interest Rate (%)</label>
+                                    <input type="number" id="asset-rate" step="0.1" placeholder="7.5" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Tenure (Months)</label>
+                                    <input type="number" id="asset-tenure" placeholder="12" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Maturity Date</label>
+                                <input type="date" id="asset-maturity" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold rounded-xl text-sm transition-all shadow-md shadow-indigo-500/20">
+                            Save Asset Record
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Assets Portfolio List -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col">
+                    <h3 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-boxes-stacked text-purple-400"></i> Investment Portfolio & Term Deposits
+                    </h3>
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-3 rounded-l-lg">Type</th>
+                                    <th class="p-3">Name / Description</th>
+                                    <th class="p-3">Principal Value</th>
+                                    <th class="p-3">Interest / Return</th>
+                                    <th class="p-3">Est. Maturity</th>
+                                    <th class="p-3 text-right rounded-r-lg">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assets-table-body" class="divide-y divide-slate-800/60 font-medium">
+                                <!-- Dynamic Assets Output -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-liabilities" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Add Liability Form -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                    <h3 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-credit-card text-rose-400"></i> Record Loan / Credit Card Dues
+                    </h3>
+                    <form id="liability-form" onsubmit="handleAddLiability(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Liability Type</label>
+                            <select id="liab-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500">
+                                <option value="Credit Card">Credit Card Outstanding</option>
+                                <option value="Home Loan">Home Loan EMI</option>
+                                <option value="Car Loan">Car / Vehicle Loan EMI</option>
+                                <option value="Personal Loan">Personal Loan EMI</option>
+                                <option value="Other Liability">Other Debt Obligation</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Name / Lender Bank</label>
+                            <input type="text" id="liab-name" required placeholder="e.g. HDFC Regalia CC or SBI Loan" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Total Outstanding (₹)</label>
+                                <input type="number" id="liab-principal" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500 font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Monthly EMI / Min Due</label>
+                                <input type="number" id="liab-emi" step="0.01" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500 font-mono">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Interest Rate (% p.a)</label>
+                                <input type="number" id="liab-rate" step="0.1" placeholder="12.5" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500 font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Due Date / Day of Month</label>
+                                <input type="text" id="liab-duedate" placeholder="5th of every month" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-rose-500">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-semibold rounded-xl text-sm transition-all shadow-md shadow-rose-500/20">
+                            Add Debt Record
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Liabilities Summary Table -->
+                <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col">
+                    <h3 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-rose-400"></i> Active EMI Obligations & Debt Liabilities
+                    </h3>
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-3 rounded-l-lg">Type</th>
+                                    <th class="p-3">Lender / Description</th>
+                                    <th class="p-3">Total Balance</th>
+                                    <th class="p-3">Monthly EMI</th>
+                                    <th class="p-3">Due Cycle</th>
+                                    <th class="p-3 text-right rounded-r-lg">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="liabilities-table-body" class="divide-y divide-slate-800/60 font-medium">
+                                <!-- Dynamic Liabilities Output -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-calculators" class="tab-content hidden space-y-6">
+            <!-- Calculator Sub-Tab Navigation -->
+            <div class="flex space-x-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-medium">
+                <button onclick="switchCalc('compound')" id="calc-tab-compound" class="calc-btn px-4 py-2 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    <i class="fa-solid fa-arrow-trend-up"></i> Compound Interest
+                </button>
+                <button onclick="switchCalc('fd-rd')" id="calc-tab-fd-rd" class="calc-btn px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700">
+                    <i class="fa-solid fa-vault"></i> FD / RD Maturity Calculator
+                </button>
+                <button onclick="switchCalc('emi')" id="calc-tab-emi" class="calc-btn px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700">
+                    <i class="fa-solid fa-calculator"></i> Loan EMI Calculator
+                </button>
+                <button onclick="switchCalc('sip')" id="calc-tab-sip" class="calc-btn px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700">
+                    <i class="fa-solid fa-piggy-bank"></i> SIP Wealth Growth
+                </button>
+            </div>
+
+            <div id="calc-panel-compound" class="calc-panel space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+                        <h4 class="font-semibold text-sky-400 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> Compound Parameters
+                        </h4>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Initial Principal (₹)</label>
+                            <input type="number" id="ci-principal" value="100000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono focus:border-sky-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Monthly Addition (₹)</label>
+                            <input type="number" id="ci-monthly" value="5000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono focus:border-sky-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Annual Interest Rate (%)</label>
+                            <input type="number" id="ci-rate" step="0.1" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono focus:border-sky-500">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Tenure (Years)</label>
+                                <input type="number" id="ci-years" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono focus:border-sky-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Compounding</label>
+                                <select id="ci-frequency" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-sky-500">
+                                    <option value="12">Monthly</option>
+                                    <option value="4">Quarterly</option>
+                                    <option value="1" selected>Annually</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="calculateCompoundInterest()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl text-sm transition-all">
+                            Compute Future Value
+                        </button>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-sky-400"></i> Wealth Accumulation Projection
+                            </h4>
+                            <div class="grid grid-cols-3 gap-3 mb-6">
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Invested Amount</span>
+                                    <span id="ci-res-invested" class="text-base font-bold font-mono text-slate-200">₹0.00</span>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Total Interest Earned</span>
+                                    <span id="ci-res-interest" class="text-base font-bold font-mono text-emerald-400">₹0.00</span>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Final Future Value</span>
+                                    <span id="ci-res-total" class="text-base font-bold font-mono text-sky-400">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="ciChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calc-panel-fd-rd" class="calc-panel hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+                        <h4 class="font-semibold text-indigo-400 flex items-center gap-2">
+                            <i class="fa-solid fa-vault"></i> FD & RD Maturity Parameters
+                        </h4>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Deposit Type</label>
+                            <select id="fdrd-type" onchange="calculateFDRD()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200">
+                                <option value="FD">Fixed Deposit (FD)</option>
+                                <option value="RD">Recurring Deposit (RD)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label id="fdrd-amount-label" class="block text-xs font-medium text-slate-400 mb-1">Principal Deposit Amount (₹)</label>
+                            <input type="number" id="fdrd-amount" value="500000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Annual Interest Rate (%)</label>
+                            <input type="number" id="fdrd-rate" step="0.1" value="7.25" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Tenure (Months)</label>
+                            <input type="number" id="fdrd-tenure" value="24" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <button onclick="calculateFDRD()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition-all">
+                            Calculate Maturity Value
+                        </button>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col justify-between">
+                        <h4 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-piggy-bank text-indigo-400"></i> Deposit Breakdown
+                        </h4>
+                        <div class="grid grid-cols-3 gap-3 mb-6">
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">Total Investment</span>
+                                <span id="fdrd-res-invested" class="text-base font-bold font-mono text-slate-200">₹0.00</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">Guaranteed Interest</span>
+                                <span id="fdrd-res-interest" class="text-base font-bold font-mono text-emerald-400">₹0.00</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 block">Maturity Amount</span>
+                                <span id="fdrd-res-maturity" class="text-base font-bold font-mono text-indigo-400">₹0.00</span>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800/80 text-xs text-slate-400 space-y-2">
+                            <p><i class="fa-solid fa-circle-info text-sky-400"></i> <strong>Note on Banking Formulas:</strong> Indian Banking Fixed Deposits traditionally calculate interest compounding on a quarterly basis. Recurring Deposits (RD) calculate interest on a monthly compounding basis.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calc-panel-emi" class="calc-panel hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+                        <h4 class="font-semibold text-rose-400 flex items-center gap-2">
+                            <i class="fa-solid fa-calculator"></i> Loan EMI Calculator
+                        </h4>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Loan Amount (₹)</label>
+                            <input type="number" id="calc-emi-amount" value="2500000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Interest Rate (% p.a)</label>
+                            <input type="number" id="calc-emi-rate" step="0.1" value="8.5" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Tenure (Years)</label>
+                            <input type="number" id="calc-emi-years" value="15" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <button onclick="calculateLoanEMI()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-sm transition-all">
+                            Calculate Monthly Payment
+                        </button>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-pie text-rose-400"></i> Repayment & Interest Amortization
+                            </h4>
+                            <div class="grid grid-cols-3 gap-3 mb-6">
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Monthly EMI</span>
+                                    <span id="emi-res-monthly" class="text-base font-bold font-mono text-rose-400">₹0.00</span>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Total Interest Payable</span>
+                                    <span id="emi-res-interest" class="text-base font-bold font-mono text-amber-400">₹0.00</span>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Total Outflow</span>
+                                    <span id="emi-res-total" class="text-base font-bold font-mono text-slate-200">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-56 flex justify-center">
+                            <canvas id="emiChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calc-panel-sip" class="calc-panel hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+                        <h4 class="font-semibold text-emerald-400 flex items-center gap-2">
+                            <i class="fa-solid fa-seedling"></i> Mutual Fund SIP Simulator
+                        </h4>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Monthly SIP Investment (₹)</label>
+                            <input type="number" id="sip-monthly" value="10000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Expected Annual Return Rate (%)</label>
+                            <input type="number" id="sip-rate" step="0.5" value="12" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Duration (Years)</label>
+                            <input type="number" id="sip-years" value="15" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono">
+                        </div>
+
+                        <button onclick="calculateSIP()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-sm transition-all">
+                            Simulate SIP Wealth
+                        </button>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl border border-slate-800 lg:col-span-2 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-arrow-up-right-dots text-emerald-400"></i> Investment Growth vs Corpus
+                            </h4>
+                            <div class="grid grid-cols-3 gap-3 mb-6">
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Total Investment</span>
+                                    <span id="sip-res-invested" class="text-base font-bold font-mono text-slate-200">₹0.00</span>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Est. Capital Gains</span>
+                                    <span id="sip-res-gains" class="text-base font-bold font-mono text-emerald-400">₹0.00</span>
+                                </div>
+                                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                    <span class="text-[10px] text-slate-400 block">Maturity Corpus</span>
+                                    <span id="sip-res-corpus" class="text-base font-bold font-mono text-indigo-400">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="sipChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="starting-balance-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="glass-panel p-6 rounded-2xl border border-slate-700 max-w-md w-full mx-4 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-sky-400"></i> Set Starting Balances
+                </h3>
+                <button onclick="closeStartingBalanceModal()" class="text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400">
+                Configure your base starting balances. Any daily transactions entered in your cash flow ledger will automatically calculate on top of these baselines.
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Current Account Starting Balance (₹)</label>
+                    <input type="number" id="start-current-bal" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono focus:border-sky-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Savings Account Starting Balance (₹)</label>
+                    <input type="number" id="start-savings-bal" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 font-mono focus:border-sky-500">
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end pt-2">
+                <button onclick="closeStartingBalanceModal()" class="px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 rounded-xl">
+                    Cancel
+                </button>
+                <button onclick="saveStartingBalances()" class="px-4 py-2 text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-xl shadow-md shadow-sky-500/20">
+                    Save Balances
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration fallback environment check
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'omniwealth-live-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyDemoKeyForPublicAppAccessOnly12345",
+                authDomain: "omniwealth-app.firebaseapp.com",
+                projectId: "omniwealth-app",
+                storageBucket: "omniwealth-app.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef123456"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userUid = null;
+        let isCloudSynced = false;
+
+        // Default State Structure
+        window.appState = {
+            startingBalances: {
+                currentAccount: 50000,
+                savingsAccount: 150000
+            },
+            ledger: [
+                { id: '1', date: '2026-10-01', type: 'Income', account: 'Current Account', category: 'Salary & Earnings', amount: 120000, note: 'Monthly Salary Credit' },
+                { id: '2', date: '2026-10-05', type: 'Expense', account: 'Current Account', category: 'Food & Groceries', amount: 8500, note: 'Supermarket Restock' }
+            ],
+            assets: [
+                { id: 'a1', type: 'Fixed Deposit', name: 'HDFC Quarterly FD', amount: 200000, rate: 7.25, tenureMonths: 12, maturityDate: '2027-03-15' },
+                { id: 'a2', type: 'Mutual Funds', name: 'Nifty 50 Index Fund', amount: 180000, rate: 12.0, tenureMonths: 0, maturityDate: 'N/A' }
+            ],
+            liabilities: [
+                { id: 'l1', type: 'Home Loan', name: 'SBI Home Loan', principal: 1850000, emi: 22500, rate: 8.4, dueDate: '10th of every month' },
+                { id: 'l2', type: 'Credit Card', name: 'ICICI Amazon Pay CC', principal: 14200, emi: 14200, rate: 42.0, dueDate: '22nd of every month' }
+            ]
+        };
+
+        const HASH_KEY = 'omniwealth_auth_hash';
+        const STORAGE_KEY = 'omniwealth_app_data';
+
+        async function sha256(str) {
+            const buffer = new TextEncoder().encode(str);
+            const digest = await crypto.subtle.digest('SHA-256', buffer);
+            return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Initialize Firebase Authentication & Realtime Cloud Sync
+        async function initCloudSync() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.warn('Fallback to anonymous Cloud login:', err);
+                try { await signInAnonymously(auth); } catch (e) { console.error('Cloud auth failed', e); }
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userUid = user.uid;
+                    listenToCloudData();
+                }
+            });
+        }
+
+        function listenToCloudData() {
+            if (!userUid) return;
+            const docRef = doc(db, 'artifacts', appId, 'users', userUid, 'user_data', 'finance_state');
+            
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    window.appState = docSnap.data();
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(window.appState));
+                    isCloudSynced = true;
+                    if (window.refreshAllCalculations) window.refreshAllCalculations();
+                } else {
+                    // Seed initial state to cloud
+                    syncToCloud();
+                }
+            }, (error) => {
+                console.warn("Firestore live snapshot issue, falling back to local storage:", error);
+            });
+        }
+
+        async function syncToCloud() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(window.appState));
+            if (!userUid) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', userUid, 'user_data', 'finance_state');
+                await setDoc(docRef, window.appState);
+            } catch (err) {
+                console.error("Cloud push failed:", err);
+            }
+        }
+
+        window.syncToCloud = syncToCloud;
+
+        window.handleAuthSubmit = async function(e) {
+            e.preventDefault();
+            const passkey = document.getElementById('auth-passkey').value;
+            const errDiv = document.getElementById('auth-error');
+            errDiv.classList.add('hidden');
+
+            if (!passkey) return;
+
+            const hashedInput = await sha256(passkey);
+            const savedHash = localStorage.getItem(HASH_KEY);
+
+            if (!savedHash) {
+                localStorage.setItem(HASH_KEY, hashedInput);
+                syncToCloud();
+                unlockVault();
+            } else if (savedHash === hashedInput) {
+                unlockVault();
+            } else {
+                errDiv.classList.remove('hidden');
+            }
+        };
+
+        function unlockVault() {
+            loadLocalState();
+            document.getElementById('auth-lock-screen').classList.add('hidden');
+            window.refreshAllCalculations();
+            initCloudSync();
+        }
+
+        function loadLocalState() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try { window.appState = JSON.parse(raw); } catch (e) { }
+            }
+        }
+
+        window.lockVault = function() {
+            document.getElementById('auth-passkey').value = '';
+            document.getElementById('auth-lock-screen').classList.remove('hidden');
+        };
+
+        window.initAuth = function() {
+            const savedHash = localStorage.getItem(HASH_KEY);
+            if (!savedHash) {
+                document.getElementById('auth-title').textContent = "Set Up Vault Password";
+                document.getElementById('auth-subtitle').textContent = "Create a master passcode to protect your cloud finance database.";
+                document.getElementById('auth-submit-btn').textContent = "Create Passcode & Lock";
+            }
+        };
+
+        window.onload = function() {
+            document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+            window.initAuth();
+            window.calculateCompoundInterest();
+            window.calculateFDRD();
+            window.calculateLoanEMI();
+            window.calculateSIP();
+        };
+    </script>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-sky-400', 'text-sky-400');
+                btn.classList.add('border-transparent', 'text-slate-300');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-slate-300');
+                activeBtn.classList.add('border-sky-400', 'text-sky-400');
+            }
+        }
+
+        function switchCalc(calcId) {
+            document.querySelectorAll('.calc-panel').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.calc-btn').forEach(btn => {
+                btn.className = 'calc-btn px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700';
+            });
+
+            document.getElementById(`calc-panel-${calcId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`calc-tab-${calcId}`);
+            if (activeBtn) {
+                activeBtn.className = 'calc-btn px-4 py-2 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30';
+            }
+        }
+
+        function openStartingBalanceModal() {
+            document.getElementById('start-current-bal').value = window.appState.startingBalances.currentAccount;
+            document.getElementById('start-savings-bal').value = window.appState.startingBalances.savingsAccount;
+            document.getElementById('starting-balance-modal').classList.remove('hidden');
+        }
+
+        function closeStartingBalanceModal() {
+            document.getElementById('starting-balance-modal').classList.add('hidden');
+        }
+
+        function saveStartingBalances() {
+            const curr = parseFloat(document.getElementById('start-current-bal').value) || 0;
+            const sav = parseFloat(document.getElementById('start-savings-bal').value) || 0;
+
+            window.appState.startingBalances.currentAccount = curr;
+            window.appState.startingBalances.savingsAccount = sav;
+
+            closeStartingBalanceModal();
+            refreshAllCalculations();
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appState, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `OmniWealth_Cloud_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Global Chart Instances
+        let assetChartInstance = null;
+        let cashFlowChartInstance = null;
+        let ciChartInstance = null;
+        let emiChartInstance = null;
+        let sipChartInstance = null;
+
+        function refreshAllCalculations() {
+            if (window.syncToCloud) window.syncToCloud();
+
+            let currentBal = window.appState.startingBalances.currentAccount;
+            let savingsBal = window.appState.startingBalances.savingsAccount;
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            window.appState.ledger.forEach(tx => {
+                const amt = parseFloat(tx.amount) || 0;
+                if (tx.type === 'Income') {
+                    if (tx.account === 'Current Account') currentBal += amt;
+                    if (tx.account === 'Savings Account') savingsBal += amt;
+                    totalIncome += amt;
+                } else if (tx.type === 'Expense') {
+                    if (tx.account === 'Current Account') currentBal -= amt;
+                    if (tx.account === 'Savings Account') savingsBal -= amt;
+                    totalExpense += amt;
+                } else if (tx.type === 'Transfer') {
+                    if (tx.account === 'Current Account') currentBal += amt;
+                    if (tx.account === 'Savings Account') savingsBal += amt;
+                }
+            });
+
+            let termDepositsVal = 0;
+            let otherInvestmentsVal = 0;
+
+            window.appState.assets.forEach(asset => {
+                const amt = parseFloat(asset.amount) || 0;
+                if (asset.type === 'Fixed Deposit' || asset.type === 'Recurring Deposit') {
+                    termDepositsVal += amt;
+                } else {
+                    otherInvestmentsVal += amt;
+                }
+            });
+
+            let totalDebts = 0;
+            window.appState.liabilities.forEach(liab => {
+                totalDebts += (parseFloat(liab.principal) || 0);
+            });
+
+            const totalAssets = currentBal + savingsBal + termDepositsVal + otherInvestmentsVal;
+            const netWorth = totalAssets - totalDebts;
+
+            const formatCurr = num => '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            document.getElementById('summary-current-acc').textContent = formatCurr(currentBal);
+            document.getElementById('summary-savings-acc').textContent = formatCurr(savingsBal);
+            document.getElementById('summary-fd-rd').textContent = formatCurr(termDepositsVal);
+            document.getElementById('summary-investments').textContent = formatCurr(otherInvestmentsVal);
+            document.getElementById('summary-liabilities').textContent = formatCurr(totalDebts);
+            document.getElementById('summary-net-worth').textContent = formatCurr(netWorth);
+
+            const liquidAssets = currentBal + savingsBal;
+            const monthlyExpense = totalExpense > 0 ? totalExpense : 30000;
+            const emergencyMonths = (liquidAssets / monthlyExpense).toFixed(1);
+            document.getElementById('dashboard-emergency-ratio').textContent = `${emergencyMonths} Months`;
+            document.getElementById('emergency-progress').style.width = `${Math.min((emergencyMonths / 6) * 100, 100)}%`;
+
+            const debtRatio = totalAssets > 0 ? ((totalDebts / totalAssets) * 100).toFixed(1) : 0;
+            document.getElementById('dashboard-debt-ratio').textContent = `${debtRatio}%`;
+            document.getElementById('debt-progress').style.width = `${Math.min(debtRatio, 100)}%`;
+
+            const investRatio = netWorth > 0 ? (((termDepositsVal + otherInvestmentsVal) / totalAssets) * 100).toFixed(1) : 0;
+            document.getElementById('dashboard-invest-ratio').textContent = `${investRatio}%`;
+            document.getElementById('invest-progress').style.width = `${Math.min(investRatio, 100)}%`;
+
+            renderLedgerTable();
+            renderAssetsTable();
+            renderLiabilitiesTable();
+            renderDashboardCharts(currentBal, savingsBal, termDepositsVal, otherInvestmentsVal, totalIncome, totalExpense);
+        }
+
+        window.refreshAllCalculations = refreshAllCalculations;
+
+        function handleAddTransaction(e) {
+            e.preventDefault();
+            const type = document.getElementById('tx-type').value;
+            const account = document.getElementById('tx-account').value;
+            const category = document.getElementById('tx-category').value;
+            const amount = parseFloat(document.getElementById('tx-amount').value) || 0;
+            const date = document.getElementById('tx-date').value;
+            const note = document.getElementById('tx-note').value || 'N/A';
+
+            if (amount <= 0) return;
+
+            const newTx = { id: Date.now().toString(), date, type, account, category, amount, note };
+
+            window.appState.ledger.unshift(newTx);
+            document.getElementById('ledger-form').reset();
+            document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+            refreshAllCalculations();
+        }
+
+        function deleteLedgerItem(id) {
+            window.appState.ledger = window.appState.ledger.filter(item => item.id !== id);
+            refreshAllCalculations();
+        }
+
+        function clearAllLedger() {
+            window.appState.ledger = [];
+            refreshAllCalculations();
+        }
+
+        function renderLedgerTable() {
+            const tbody = document.getElementById('ledger-table-body');
+            const search = document.getElementById('ledger-search').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            const filtered = window.appState.ledger.filter(item => 
+                item.category.toLowerCase().includes(search) || 
+                item.note.toLowerCase().includes(search) ||
+                item.account.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No transaction records found.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition-colors";
+                const isIncome = item.type === 'Income';
+                const amtClass = isIncome ? 'text-emerald-400' : (item.type === 'Expense' ? 'text-rose-400' : 'text-sky-400');
+                const sign = isIncome ? '+' : (item.type === 'Expense' ? '-' : '');
+
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-400 font-mono">${item.date}</td>
+                    <td class="p-3 text-slate-300">${item.account}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 text-[10px] rounded-full bg-slate-800 text-slate-300 border border-slate-700">${item.category}</span></td>
+                    <td class="p-3 text-slate-400 truncate max-w-[150px]">${item.note}</td>
+                    <td class="p-3 font-mono font-bold ${amtClass}">${sign}₹${item.amount.toLocaleString('en-IN')}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="deleteLedgerItem('${item.id}')" class="text-slate-500 hover:text-rose-400 transition-colors">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleAssetFields() {
+            const type = document.getElementById('asset-type').value;
+            const fdFields = document.getElementById('fd-fields');
+            if (type === 'Fixed Deposit' || type === 'Recurring Deposit') {
+                fdFields.classList.remove('hidden');
+            } else {
+                fdFields.classList.add('hidden');
+            }
+        }
+
+        function handleAddAsset(e) {
+            e.preventDefault();
+            const type = document.getElementById('asset-type').value;
+            const name = document.getElementById('asset-name').value;
+            const amount = parseFloat(document.getElementById('asset-amount').value) || 0;
+            const rate = parseFloat(document.getElementById('asset-rate').value) || 0;
+            const tenureMonths = parseInt(document.getElementById('asset-tenure').value) || 0;
+            const maturityDate = document.getElementById('asset-maturity').value || 'N/A';
+
+            const newAsset = { id: Date.now().toString(), type, name, amount, rate, tenureMonths, maturityDate };
+
+            window.appState.assets.push(newAsset);
+            document.getElementById('asset-form').reset();
+            refreshAllCalculations();
+        }
+
+        function deleteAssetItem(id) {
+            window.appState.assets = window.appState.assets.filter(item => item.id !== id);
+            refreshAllCalculations();
+        }
+
+        function renderAssetsTable() {
+            const tbody = document.getElementById('assets-table-body');
+            tbody.innerHTML = '';
+
+            if (window.appState.assets.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No investment assets recorded yet.</td></tr>`;
+                return;
+            }
+
+            window.appState.assets.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3"><span class="px-2 py-0.5 text-[10px] rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/50">${item.type}</span></td>
+                    <td class="p-3 text-slate-200 font-medium">${item.name}</td>
+                    <td class="p-3 font-mono text-slate-200">₹${item.amount.toLocaleString('en-IN')}</td>
+                    <td class="p-3 font-mono text-emerald-400">${item.rate > 0 ? item.rate + '%' : 'N/A'}</td>
+                    <td class="p-3 text-slate-400">${item.maturityDate}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="deleteAssetItem('${item.id}')" class="text-slate-500 hover:text-rose-400 transition-colors">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleAddLiability(e) {
+            e.preventDefault();
+            const type = document.getElementById('liab-type').value;
+            const name = document.getElementById('liab-name').value;
+            const principal = parseFloat(document.getElementById('liab-principal').value) || 0;
+            const emi = parseFloat(document.getElementById('liab-emi').value) || 0;
+            const rate = parseFloat(document.getElementById('liab-rate').value) || 0;
+            const dueDate = document.getElementById('liab-duedate').value || 'Monthly';
+
+            const newLiab = { id: Date.now().toString(), type, name, principal, emi, rate, dueDate };
+
+            window.appState.liabilities.push(newLiab);
+            document.getElementById('liability-form').reset();
+            refreshAllCalculations();
+        }
+
+        function deleteLiabilityItem(id) {
+            window.appState.liabilities = window.appState.liabilities.filter(item => item.id !== id);
+            refreshAllCalculations();
+        }
+
+        function renderLiabilitiesTable() {
+            const tbody = document.getElementById('liabilities-table-body');
+            tbody.innerHTML = '';
+
+            if (window.appState.liabilities.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No active debts or EMI liabilities.</td></tr>`;
+                return;
+            }
+
+            window.appState.liabilities.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3"><span class="px-2 py-0.5 text-[10px] rounded-full bg-rose-950 text-rose-300 border border-rose-800/50">${item.type}</span></td>
+                    <td class="p-3 text-slate-200 font-medium">${item.name}</td>
+                    <td class="p-3 font-mono text-rose-400 font-bold">₹${item.principal.toLocaleString('en-IN')}</td>
+                    <td class="p-3 font-mono text-amber-300">₹${item.emi.toLocaleString('en-IN')} / mo</td>
+                    <td class="p-3 text-slate-400">${item.dueDate}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="deleteLiabilityItem('${item.id}')" class="text-slate-500 hover:text-rose-400 transition-colors">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderDashboardCharts(currentBal, savingsBal, termDeposits, investments, income, expense) {
+            const ctxAsset = document.getElementById('assetChart').getContext('2d');
+            if (assetChartInstance) assetChartInstance.destroy();
+
+            assetChartInstance = new Chart(ctxAsset, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Current Account', 'Savings Account', 'FD / RD Deposits', 'Market Investments'],
+                    datasets: [{
+                        data: [currentBal, savingsBal, termDeposits, investments],
+                        backgroundColor: ['#0284c7', '#10b981', '#6366f1', '#a855f7'],
+                        borderWidth: 2,
+                        borderColor: '#0f172a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } },
+                    cutout: '65%'
+                }
+            });
+
+            const ctxCash = document.getElementById('cashFlowChart').getContext('2d');
+            if (cashFlowChartInstance) cashFlowChartInstance.destroy();
+
+            cashFlowChartInstance = new Chart(ctxCash, {
+                type: 'bar',
+                data: {
+                    labels: ['Total Cash Inflow (Income)', 'Total Outflow (Expenses)'],
+                    datasets: [{
+                        label: 'Cash Flow Amount (₹)',
+                        data: [income, expense],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function calculateCompoundInterest() {
+            const P = parseFloat(document.getElementById('ci-principal').value) || 0;
+            const PMT = parseFloat(document.getElementById('ci-monthly').value) || 0;
+            const annualRate = (parseFloat(document.getElementById('ci-rate').value) || 0) / 100;
+            const t = parseInt(document.getElementById('ci-years').value) || 1;
+
+            let totalInvested = P;
+            let currentCorpus = P;
+
+            const labels = [];
+            const corpusData = [];
+            const investedData = [];
+
+            for (let year = 1; year <= t; year++) {
+                for (let month = 1; month <= 12; month++) {
+                    currentCorpus += PMT;
+                    totalInvested += PMT;
+                    currentCorpus *= (1 + annualRate / 12);
+                }
+
+                labels.push(`Year ${year}`);
+                corpusData.push(Math.round(currentCorpus));
+                investedData.push(totalInvested);
+            }
+
+            const totalInterest = currentCorpus - totalInvested;
+
+            document.getElementById('ci-res-invested').textContent = '₹' + totalInvested.toLocaleString('en-IN', {maximumFractionDigits:0});
+            document.getElementById('ci-res-interest').textContent = '₹' + Math.round(totalInterest).toLocaleString('en-IN', {maximumFractionDigits:0});
+            document.getElementById('ci-res-total').textContent = '₹' + Math.round(currentCorpus).toLocaleString('en-IN', {maximumFractionDigits:0});
+
+            const ctx = document.getElementById('ciChart').getContext('2d');
+            if (ciChartInstance) ciChartInstance.destroy();
+
+            ciChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Total Corpus (Principal + Growth)', data: corpusData, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Total Invested Out-of-Pocket', data: investedData, borderColor: '#64748b', borderDash: [5, 5], fill: false }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function calculateFDRD() {
+            const type = document.getElementById('fdrd-type').value;
+            const amount = parseFloat(document.getElementById('fdrd-amount').value) || 0;
+            const r = (parseFloat(document.getElementById('fdrd-rate').value) || 0) / 100;
+            const tMonths = parseInt(document.getElementById('fdrd-tenure').value) || 0;
+
+            let maturity = 0;
+            let invested = 0;
+
+            if (type === 'FD') {
+                document.getElementById('fdrd-amount-label').textContent = 'Principal Deposit Amount (₹)';
+                invested = amount;
+                const tYears = tMonths / 12;
+                maturity = amount * Math.pow((1 + r / 4), 4 * tYears);
+            } else {
+                document.getElementById('fdrd-amount-label').textContent = 'Monthly Recurring Deposit Amount (₹)';
+                invested = amount * tMonths;
+                maturity = 0;
+                for (let i = 1; i <= tMonths; i++) {
+                    const monthsRemaining = tMonths - i + 1;
+                    maturity += amount * Math.pow((1 + r / 12), monthsRemaining);
+                }
+            }
+
+            const interest = maturity - invested;
+
+            document.getElementById('fdrd-res-invested').textContent = '₹' + Math.round(invested).toLocaleString('en-IN');
+            document.getElementById('fdrd-res-interest').textContent = '₹' + Math.round(interest).toLocaleString('en-IN');
+            document.getElementById('fdrd-res-maturity').textContent = '₹' + Math.round(maturity).toLocaleString('en-IN');
+        }
+
+        function calculateLoanEMI() {
+            const P = parseFloat(document.getElementById('calc-emi-amount').value) || 0;
+            const annualRate = parseFloat(document.getElementById('calc-emi-rate').value) || 0;
+            const r = annualRate / 12 / 100;
+            const n = (parseInt(document.getElementById('calc-emi-years').value) || 1) * 12;
+
+            if (P <= 0 || r <= 0 || n <= 0) return;
+
+            const emi = (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+            const totalOutflow = emi * n;
+            const totalInterest = totalOutflow - P;
+
+            document.getElementById('emi-res-monthly').textContent = '₹' + Math.round(emi).toLocaleString('en-IN');
+            document.getElementById('emi-res-interest').textContent = '₹' + Math.round(totalInterest).toLocaleString('en-IN');
+            document.getElementById('emi-res-total').textContent = '₹' + Math.round(totalOutflow).toLocaleString('en-IN');
+
+            const ctx = document.getElementById('emiChart').getContext('2d');
+            if (emiChartInstance) emiChartInstance.destroy();
+
+            emiChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Principal Amount', 'Total Interest Cost'],
+                    datasets: [{
+                        data: [P, totalInterest],
+                        backgroundColor: ['#0284c7', '#f43f5e'],
+                        borderWidth: 2,
+                        borderColor: '#0f172a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+                }
+            });
+        }
+
+        function calculateSIP() {
+            const P = parseFloat(document.getElementById('sip-monthly').value) || 0;
+            const annualRate = parseFloat(document.getElementById('sip-rate').value) || 0;
+            const i = annualRate / 12 / 100;
+            const years = parseInt(document.getElementById('sip-years').value) || 1;
+            const n = years * 12;
+
+            const maturity = P * ((Math.pow(1 + i, n) - 1) / i) * (1 + i);
+            const totalInvested = P * n;
+            const capitalGains = maturity - totalInvested;
+
+            document.getElementById('sip-res-invested').textContent = '₹' + Math.round(totalInvested).toLocaleString('en-IN');
+            document.getElementById('sip-res-gains').textContent = '₹' + Math.round(capitalGains).toLocaleString('en-IN');
+            document.getElementById('sip-res-corpus').textContent = '₹' + Math.round(maturity).toLocaleString('en-IN');
+
+            const labels = [];
+            const investedArr = [];
+            const corpusArr = [];
+
+            let runningInvested = 0;
+            let runningCorpus = 0;
+
+            for (let y = 1; y <= years; y++) {
+                const months = y * 12;
+                runningInvested = P * months;
+                runningCorpus = P * ((Math.pow(1 + i, months) - 1) / i) * (1 + i);
+
+                labels.push(`Year ${y}`);
+                investedArr.push(Math.round(runningInvested));
+                corpusArr.push(Math.round(runningCorpus));
+            }
+
+            const ctx = document.getElementById('sipChart').getContext('2d');
+            if (sipChartInstance) sipChartInstance.destroy();
+
+            sipChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Invested Capital', data: investedArr, backgroundColor: '#475569', borderRadius: 4 },
+                        { label: 'Estimated Wealth Corpus', data: corpusArr, backgroundColor: '#10b981', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
